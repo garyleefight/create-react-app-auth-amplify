@@ -1,0 +1,167 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack For Amplify Console",
+    "Parameters": {
+        "DeployAppName": {
+            "Description": "Name of CICD Amplify App",
+            "Type": "String",
+            "Default": "AmpliyApp"
+        },
+        "Repository": {
+            "Description": "Git provider repository",
+            "Type": "String",
+            "Default": ""
+        },
+        "AccessToken": {
+            "Description": "Access token",
+            "Type": "String",
+            "Default": ""
+        }
+    },
+    "Conditions": {
+        "isRepoEmpty": {
+            "Fn::Equals": [
+                {
+                    "Ref": "Repository"
+                },
+                ""
+            ]
+        }
+    },
+    "Resources": {
+        "IAMServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "amplify.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "Admin",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "*",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "DeploymentApp": {
+            "Type": "AWS::Amplify::App",
+            "Properties": {
+                "Name": {
+                    "Ref": "DeployAppName"
+                },
+                "Repository": {
+                    "Fn::If": [
+                        "isRepoEmpty",
+                        {
+                            "Ref": "AWS::NoValue"
+                        },
+                        {
+                            "Ref": "Repository"
+                        }
+                    ]
+                },
+                "AccessToken": {
+                    "Fn::If": [
+                        "isRepoEmpty",
+                        {
+                            "Ref": "AWS::NoValue"
+                        },
+                        {
+                            "Ref": "AccessToken"
+                        }
+                    ]
+                },
+                "IAMServiceRole": {
+                    "Fn::GetAtt": [
+                        "IAMServiceRole",
+                        "Arn"
+                    ]
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "Region": {
+            "Description": "Amplify App Region",
+            "Value": {
+                "Ref": "AWS::Region"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-Region"
+                }
+            }
+        },
+        "StackName": {
+            "Description": "Amplify app stack name",
+            "Value": {
+                "Ref": "AWS::StackName"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-StackName"
+                }
+            }
+        },
+        "StackId": {
+            "Description": "Amplify app stack id",
+            "Value": {
+                "Ref": "AWS::StackId"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-StackId"
+                }
+            }
+        },
+        "AppArn": {
+            "Description": "Amplify App Arn",
+            "Value": {
+                "Ref": "DeploymentApp"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-DeploymentBucketName"
+                }
+            }
+        },
+        "AppId": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DeploymentApp",
+                    "AppId"
+                ]
+            }
+        },
+        "DefaultDomain": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DeploymentApp",
+                    "DefaultDomain"
+                ]
+            }
+        }
+    }
+}
